@@ -118,3 +118,5 @@ echo "  qemu-aarch64 ${OUTPUT_DIR}/abs.elf"
 echo ""
 echo "To run all tests with dynarmic:"
 echo "  dynarmic_bintest_a64 ${OUTPUT_DIR}"
+
+[ "$failed" -eq 0 ]

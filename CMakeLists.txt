@@ -12,6 +12,8 @@ option(DYNARMIC_TESTS_ENABLE_RUNNERS "Build Dynarmic binary test runners" ON)
 option(DYNARMIC_TESTS_ENABLE_A64_BINTEST "Register A64 bintest CTest entry" ON)
 option(DYNARMIC_TESTS_ENABLE_A32_BINTEST "Register A32 bintest CTest entry" ON)
 option(DYNARMIC_TESTS_ENABLE_SIMDE_BINTEST "Register SIMDe bintest CTest entry" ON)
+option(DYNARMIC_TESTS_ENABLE_A64_ASM "Register A64 asm CTest entry" ON)
+option(DYNARMIC_TESTS_ENABLE_A32_ASM "Register A32 asm CTest entry" ON)
 option(DYNARMIC_TESTS_USE_EDEN_CPM "Use Eden's CPM dependency declarations when building against an Eden checkout" ON)
 
 set(DYNARMIC_TESTS_EDEN_ROOT "" CACHE PATH "Path to an Eden checkout containing src/dynarmic")
@@ -31,16 +33,26 @@ if (DYNARMIC_TESTS_ENABLE_RUNNERS AND DYNARMIC_TESTS_HOST_BACKEND_AVAILABLE)
         runners/a64_bintest_runner.cpp
     )
     target_link_libraries(dynarmic_bintest_a64 PRIVATE dynarmic)
-    if (DYNARMIC_TESTS_BOOST_INCLUDE_DIR)
-        target_include_directories(dynarmic_bintest_a64 PRIVATE "${DYNARMIC_TESTS_BOOST_INCLUDE_DIR}")
-    endif()
 
     add_executable(dynarmic_bintest_a32
         runners/a32_bintest_runner.cpp
     )
     target_link_libraries(dynarmic_bintest_a32 PRIVATE dynarmic)
+
+    add_executable(dynarmic_asmtest_a64
+        runners/asm/a64_asmtest.cpp
+    )
+    target_link_libraries(dynarmic_asmtest_a64 PRIVATE dynarmic fmt::fmt)
+
+    add_executable(dynarmic_asmtest_a32
+        runners/asm/a32_asmtest.cpp
+    )
+    target_link_libraries(dynarmic_asmtest_a32 PRIVATE dynarmic fmt::fmt)
+
     if (DYNARMIC_TESTS_BOOST_INCLUDE_DIR)
-        target_include_directories(dynarmic_bintest_a32 PRIVATE "${DYNARMIC_TESTS_BOOST_INCLUDE_DIR}")
+        foreach (target dynarmic_bintest_a64 dynarmic_bintest_a32 dynarmic_asmtest_a64 dynarmic_asmtest_a32)
+            target_include_directories(${target} PRIVATE "${DYNARMIC_TESTS_BOOST_INCLUDE_DIR}")
+        endforeach()
     endif()
 elseif (DYNARMIC_TESTS_ENABLE_RUNNERS)
     message(STATUS "Dynarmic runners disabled: host backend '${DYNARMIC_TESTS_HOST_ARCH}' is not available in this Dynarmic checkout")
@@ -48,6 +60,7 @@ endif()
 
 find_program(DYNARMIC_TESTS_AARCH64_CC aarch64-none-elf-gcc)
 find_program(DYNARMIC_TESTS_ARM_CC arm-none-eabi-gcc)
+find_package(Python3 COMPONENTS Interpreter)
 
 set(DYNARMIC_TESTS_DRIVER "${CMAKE_CURRENT_SOURCE_DIR}/scripts/dynarmic-tests")
 
@@ -86,6 +99,57 @@ if (DYNARMIC_TESTS_AARCH64_CC AND DYNARMIC_TESTS_SIMDE_ROOT)
     )
 endif()
 
+find_program(DYNARMIC_TESTS_QEMU_AARCH64 qemu-aarch64)
+find_program(DYNARMIC_TESTS_QEMU_ARM qemu-arm)
+
+if (DYNARMIC_TESTS_QEMU_AARCH64)
+    add_custom_target(dynarmic_tests_oracle_a64_bintest
+        COMMAND "${DYNARMIC_TESTS_DRIVER}" oracle-a64-bintest
+                --tests "${DYNARMIC_TESTS_GENERATED_DIR}/a64"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Verifying A64 binary tests with qemu-aarch64"
+        VERBATIM
+    )
+
+    add_custom_target(dynarmic_tests_oracle_simde_bintest
+        COMMAND "${DYNARMIC_TESTS_DRIVER}" oracle-simde-bintest
+                --tests "${DYNARMIC_TESTS_GENERATED_DIR}/simde"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Verifying SIMDe binary tests with qemu-aarch64"
+        VERBATIM
+    )
+
+    if (Python3_Interpreter_FOUND)
+        add_custom_target(dynarmic_tests_oracle_a64_asm
+            COMMAND "${DYNARMIC_TESTS_DRIVER}" oracle-a64-asm
+                    --tests "${CMAKE_CURRENT_SOURCE_DIR}/asm/a64"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            COMMENT "Verifying A64 asm tests with qemu-aarch64"
+            VERBATIM
+        )
+    endif()
+endif()
+
+if (DYNARMIC_TESTS_QEMU_ARM)
+    add_custom_target(dynarmic_tests_oracle_a32_bintest
+        COMMAND "${DYNARMIC_TESTS_DRIVER}" oracle-a32-bintest
+                --tests "${DYNARMIC_TESTS_GENERATED_DIR}/a32"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Verifying A32 binary tests with qemu-arm"
+        VERBATIM
+    )
+
+    if (Python3_Interpreter_FOUND)
+        add_custom_target(dynarmic_tests_oracle_a32_asm
+            COMMAND "${DYNARMIC_TESTS_DRIVER}" oracle-a32-asm
+                    --tests "${CMAKE_CURRENT_SOURCE_DIR}/asm/a32"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            COMMENT "Verifying A32 asm tests with qemu-arm"
+            VERBATIM
+        )
+    endif()
+endif()
+
 if (BUILD_TESTING AND DYNARMIC_TESTS_ENABLE_RUNNERS AND DYNARMIC_TESTS_HOST_BACKEND_AVAILABLE)
     if (DYNARMIC_TESTS_ENABLE_A64_BINTEST)
         add_test(NAME dynarmic_tests_a64_bintest
@@ -111,6 +175,28 @@ if (BUILD_TESTING AND DYNARMIC_TESTS_ENABLE_RUNNERS AND DYNARMIC_TESTS_HOST_BACK
         )
         set_tests_properties(dynarmic_tests_simde_bintest PROPERTIES
             LABELS "dynarmic;a64;bintest;simde"
+        )
+    endif()
+
+    if (Python3_Interpreter_FOUND AND DYNARMIC_TESTS_ENABLE_A64_ASM)
+        add_test(NAME dynarmic_tests_a64_asm
+            COMMAND "${DYNARMIC_TESTS_DRIVER}" run-a64-asm
+                    --runner "$<TARGET_FILE:dynarmic_asmtest_a64>"
+                    --tests "${CMAKE_CURRENT_SOURCE_DIR}/asm/a64"
+        )
+        set_tests_properties(dynarmic_tests_a64_asm PROPERTIES
+            LABELS "dynarmic;a64;asm"
+        )
+    endif()
+
+    if (Python3_Interpreter_FOUND AND DYNARMIC_TESTS_ENABLE_A32_ASM)
+        add_test(NAME dynarmic_tests_a32_asm
+            COMMAND "${DYNARMIC_TESTS_DRIVER}" run-a32-asm
+                    --runner "$<TARGET_FILE:dynarmic_asmtest_a32>"
+                    --tests "${CMAKE_CURRENT_SOURCE_DIR}/asm/a32"
+        )
+        set_tests_properties(dynarmic_tests_a32_asm PROPERTIES
+            LABELS "dynarmic;a32;asm"
         )
     endif()
 endif()

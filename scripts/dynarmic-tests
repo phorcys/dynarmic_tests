@@ -12,9 +12,18 @@ Usage:
   dynarmic-tests run-a64 --runner EXE [--tests DIR]
   dynarmic-tests run-a32 --runner EXE [--tests DIR]
   dynarmic-tests run-simde --runner EXE [--tests DIR]
+  dynarmic-tests run-a64-asm --runner EXE [--tests DIR] [--timeout SEC]
+  dynarmic-tests run-a32-asm --runner EXE [--tests DIR] [--timeout SEC]
+  dynarmic-tests oracle-a64-bintest [--tests DIR] [--timeout SEC]
+  dynarmic-tests oracle-a32-bintest [--tests DIR] [--timeout SEC]
+  dynarmic-tests oracle-simde-bintest [--tests DIR] [--timeout SEC]
+  dynarmic-tests oracle-a64-asm [--tests DIR]
+  dynarmic-tests oracle-a32-asm [--tests DIR]
 
 Generated ELF files should live outside the source tree, normally under the
-CMake build directory.
+CMake build directory. The run-* commands execute Dynarmic. The oracle-*
+commands execute QEMU and are intended for validating test cases or a changed
+test environment, not for the default regression loop.
 EOF
 }
 
@@ -131,6 +140,126 @@ case "$cmd" in
         exec "$runner" "$tests"
         ;;
 
+    run-a64-asm|run-a32-asm)
+        runner=""
+        timeout="30"
+        case "$cmd" in
+            run-a64-asm) tests="${ROOT_DIR}/asm/a64" ;;
+            run-a32-asm) tests="${ROOT_DIR}/asm/a32" ;;
+        esac
+        while [ "$#" -gt 0 ]; do
+            case "$1" in
+                --runner)
+                    require_arg "$1" "${2:-}"
+                    runner="$2"
+                    shift 2
+                    ;;
+                --tests)
+                    require_arg "$1" "${2:-}"
+                    tests="$2"
+                    shift 2
+                    ;;
+                --timeout)
+                    require_arg "$1" "${2:-}"
+                    timeout="$2"
+                    shift 2
+                    ;;
+                *)
+                    echo "Unknown argument: $1" >&2
+                    exit 2
+                    ;;
+            esac
+        done
+        if [ -z "$runner" ]; then
+            echo "$cmd requires --runner EXE" >&2
+            exit 2
+        fi
+        exec python3 "${ROOT_DIR}/scripts/run_asm_dynarmic.py" \
+            --runner "$runner" \
+            --tests "$tests" \
+            --timeout "$timeout"
+        ;;
+
+    oracle-a64-bintest|oracle-a32-bintest|oracle-simde-bintest)
+        timeout="30"
+        case "$cmd" in
+            oracle-a64-bintest)
+                qemu="qemu-aarch64"
+                tests="${ROOT_DIR}/build/generated/a64"
+                name="a64"
+                ;;
+            oracle-a32-bintest)
+                qemu="qemu-arm"
+                tests="${ROOT_DIR}/build/generated/a32"
+                name="a32"
+                ;;
+            oracle-simde-bintest)
+                qemu="qemu-aarch64"
+                tests="${ROOT_DIR}/build/generated/simde"
+                name="simde"
+                ;;
+        esac
+        while [ "$#" -gt 0 ]; do
+            case "$1" in
+                --tests)
+                    require_arg "$1" "${2:-}"
+                    tests="$2"
+                    shift 2
+                    ;;
+                --timeout)
+                    require_arg "$1" "${2:-}"
+                    timeout="$2"
+                    shift 2
+                    ;;
+                *)
+                    echo "Unknown argument: $1" >&2
+                    exit 2
+                    ;;
+            esac
+        done
+        exec python3 "${ROOT_DIR}/scripts/oracle_bintest.py" \
+            --qemu "$qemu" \
+            --tests "$tests" \
+            --name "$name" \
+            --timeout "$timeout"
+        ;;
+
+    oracle-a64-asm)
+        tests="${ROOT_DIR}/asm/a64"
+        while [ "$#" -gt 0 ]; do
+            case "$1" in
+                --tests)
+                    require_arg "$1" "${2:-}"
+                    tests="$2"
+                    shift 2
+                    ;;
+                *)
+                    echo "Unknown argument: $1" >&2
+                    exit 2
+                    ;;
+            esac
+        done
+        exec python3 "${ROOT_DIR}/asm/arm64_runner.py" "$tests"
+        ;;
+
+    oracle-a32-asm)
+        tests="${ROOT_DIR}/asm/a32"
+        while [ "$#" -gt 0 ]; do
+            case "$1" in
+                --tests)
+                    require_arg "$1" "${2:-}"
+                    tests="$2"
+                    shift 2
+                    ;;
+                *)
+                    echo "Unknown argument: $1" >&2
+                    exit 2
+                    ;;
+            esac
+        done
+        exec python3 "${ROOT_DIR}/asm/arm32_runner.py" "$tests"
+        ;;
+
     -h|--help|help)
         usage
         ;;
@@ -141,4 +270,3 @@ case "$cmd" in
         exit 2
         ;;
 esac
-

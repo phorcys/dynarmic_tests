@@ -24,45 +24,6 @@ typedef unsigned long size_t;
 typedef long ssize_t;
 typedef long off_t;
 
-/* Fixed-width integer types */
-typedef signed char int8_t;
-typedef unsigned char uint8_t;
-typedef signed short int16_t;
-typedef unsigned short uint16_t;
-typedef signed int int32_t;
-typedef unsigned int uint32_t;
-typedef signed long int64_t;
-typedef unsigned long uint64_t;
-typedef int64_t intptr_t;
-typedef uint64_t uintptr_t;
-typedef int64_t intmax_t;
-typedef uint64_t uintmax_t;
-typedef long int_fast16_t;
-typedef unsigned long uint_fast16_t;
-typedef long int_fast32_t;
-typedef unsigned long uint_fast32_t;
-typedef int64_t int_fast64_t;
-typedef uint64_t uint_fast64_t;
-typedef int32_t int_least32_t;
-typedef uint32_t uint_least32_t;
-typedef int64_t int_least64_t;
-typedef uint64_t uint_least64_t;
-#define INT8_MIN (-128)
-#define INT8_MAX 127
-#define UINT8_MAX 255
-#define INT16_MIN (-32768)
-#define INT16_MAX 32767
-#define UINT16_MAX 65535
-#define INT32_MIN (-2147483647-1)
-#define INT32_MAX 2147483647
-#define UINT32_MAX 4294967295U
-#define INT64_MIN (-9223372036854775807LL-1)
-#define INT64_MAX 9223372036854775807LL
-#define UINT64_MAX 18446744073709551615ULL
-#define INTPTR_MIN INT64_MIN
-#define INTPTR_MAX INT64_MAX
-#define UINTPTR_MAX UINT64_MAX
-
 /* FILE type and stdio macros - must be before any stdio functions */
 typedef void FILE;
 #define stdin  ((FILE*)0)
@@ -87,8 +48,6 @@ typedef void FILE;
 #define _STDARG_H_
 #define _STDDEF_H
 #define _STDDEF_H_
-#define _STDINT_H
-#define _STDINT_H_
 #define _INTTYPES_H
 #define _INTTYPES_H_
 #define _LIMITS_H
@@ -789,14 +748,30 @@ static inline unsigned long strtoul(const char* s, char** endptr, int base) {
 
 /* ========== 15. Inttypes and stdint macros ========== */
 /* UINT32_C, INT32_C, etc. */
+#ifndef INT8_C
 #define INT8_C(x)   (x)
+#endif
+#ifndef INT16_C
 #define INT16_C(x)  (x)
+#endif
+#ifndef INT32_C
 #define INT32_C(x)  ((int32_t)(x))
+#endif
+#ifndef INT64_C
 #define INT64_C(x)  ((int64_t)(x))
+#endif
+#ifndef UINT8_C
 #define UINT8_C(x)  (x##U)
+#endif
+#ifndef UINT16_C
 #define UINT16_C(x) (x##U)
+#endif
+#ifndef UINT32_C
 #define UINT32_C(x) ((uint32_t)(x))
+#endif
+#ifndef UINT64_C
 #define UINT64_C(x) ((uint64_t)(x))
+#endif
 
 #define PRId8 "d"
 #define PRId16 "d"
@@ -820,17 +795,41 @@ static inline unsigned long strtoul(const char* s, char** endptr, int base) {
 #define PRIX64 "lX"
 
 /* ========== 16. Limits ========== */
+#ifndef INT8_MIN
 #define INT8_MIN   (-128)
+#endif
+#ifndef INT16_MIN
 #define INT16_MIN  (-32768)
+#endif
+#ifndef INT32_MIN
 #define INT32_MIN  (-2147483647-1)
+#endif
+#ifndef INT64_MIN
 #define INT64_MIN  (-9223372036854775807LL-1)
+#endif
+#ifndef INT8_MAX
 #define INT8_MAX   127
+#endif
+#ifndef INT16_MAX
 #define INT16_MAX  32767
+#endif
+#ifndef INT32_MAX
 #define INT32_MAX  2147483647
+#endif
+#ifndef INT64_MAX
 #define INT64_MAX  9223372036854775807LL
+#endif
+#ifndef UINT8_MAX
 #define UINT8_MAX  255
+#endif
+#ifndef UINT16_MAX
 #define UINT16_MAX 65535
+#endif
+#ifndef UINT32_MAX
 #define UINT32_MAX 4294967295U
+#endif
+#ifndef UINT64_MAX
 #define UINT64_MAX 18446744073709551615ULL
+#endif
 
 #endif /* SIMDE_BARE_ADAPT_H */

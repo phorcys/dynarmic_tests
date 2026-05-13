@@ -57,6 +57,8 @@ Required cross toolchains:
 
 ## Run
 
+The default loop runs Dynarmic only:
+
 ```sh
 ctest --test-dir build/dynarmic_tests --output-on-failure
 ```
@@ -67,8 +69,27 @@ Or run directly:
 build/dynarmic_tests/dynarmic_bintest_a64 build/dynarmic_tests/generated/a64
 build/dynarmic_tests/dynarmic_bintest_a32 build/dynarmic_tests/generated/a32
 build/dynarmic_tests/dynarmic_bintest_a64 build/dynarmic_tests/generated/simde
+externals/dynarmic_tests/scripts/dynarmic-tests run-a64-asm --runner build/dynarmic_tests/dynarmic_asmtest_a64
+externals/dynarmic_tests/scripts/dynarmic-tests run-a32-asm --runner build/dynarmic_tests/dynarmic_asmtest_a32
 ```
 
-The asm corpus currently carries source cases and helper scripts. The next step
-is to add a CMake/CTest asm runner that assembles each case into the same build
-output tree and executes it through the Dynarmic runners.
+The asm command runs one source file per process. This keeps a hard backend
+abort isolated to one failed test instead of ending the whole corpus run.
+
+## Oracle Validation
+
+QEMU is the oracle for checking that asm and binary test cases still describe
+the intended ARM behavior. It is not part of the default regression loop. Run it
+when adding tests, changing test harness code, changing toolchains, or moving to
+a new environment:
+
+```sh
+externals/dynarmic_tests/scripts/dynarmic-tests oracle-a64-bintest --tests build/dynarmic_tests/generated/a64
+externals/dynarmic_tests/scripts/dynarmic-tests oracle-a32-bintest --tests build/dynarmic_tests/generated/a32
+externals/dynarmic_tests/scripts/dynarmic-tests oracle-simde-bintest --tests build/dynarmic_tests/generated/simde
+externals/dynarmic_tests/scripts/dynarmic-tests oracle-a64-asm
+externals/dynarmic_tests/scripts/dynarmic-tests oracle-a32-asm
+```
+
+CMake also exposes matching explicit targets named
+`dynarmic_tests_oracle_*`. These targets are deliberately separate from CTest.
