@@ -1,0 +1,24 @@
+/* CONFIG
+{
+  "Match": "All",
+  "RegData": {
+    "X0": "0x000000000000003F"
+  }
+}
+*/
+// Test: Bitwise chain
+// 0xFF & 0x0F | 0xF0 = 0x0F | 0xF0 = 0xFF
+// 0xFF ^ 0x55 = 0xAA
+// 0xAA << 2 = 0x2A8
+// 0x2A8 >> 4 = 0x2A
+// 0x2A & 0x3F = 0x2A
+// Wait, let me recalculate with proper operations
+
+.text
+.global _start
+_start:
+    mov x0, #0xFF
+    and x0, x0, #0x0F    // 0x0F
+    orr x0, x0, #0xF0    // 0xFF
+    eor x0, x0, #0xC0    // 0x3F
+    brk #0

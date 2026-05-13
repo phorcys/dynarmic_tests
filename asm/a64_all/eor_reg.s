@@ -1,0 +1,17 @@
+/* CONFIG
+{
+  "Match": "All",
+  "RegData": {
+    "X0": "0x00000000000000FF"
+  }
+}
+*/
+
+.text
+.global _start
+_start:
+    mov x0, #0xF0
+    mov x1, #0x0F
+    eor x0, x0, x1
+    brk #0
+

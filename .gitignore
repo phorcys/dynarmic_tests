@@ -1,0 +1,8 @@
+/.cache/
+/build/
+/out/
+.gdb_history
+*.elf
+*.core
+*.pyc
+__pycache__/

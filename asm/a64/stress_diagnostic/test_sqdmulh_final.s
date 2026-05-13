@@ -1,0 +1,30 @@
+/* CONFIG
+{
+  "Match": "All",
+  "RegData": { 
+    "X0": "0x0492"
+  },
+  "VecData": {
+    "V3": ["0x0000000000000492", "0"]
+  }
+}
+*/
+.text
+.global _start
+_start:
+    // Load h0 = -7721, h1 = -4968 using mov
+    mov w0, #0xE1D7
+    movk w0, #0xFFFF, lsl #16   // w0 = -7721
+    
+    mov w1, #0xEC98
+    movk w1, #0xFFFF, lsl #16   // w1 = -4968
+    
+    // Move to V registers
+    fmov s0, w0
+    fmov s1, w1
+    
+    // SQDMULH h3, h0, h1 should give 1170 = 0x0492
+    sqdmulh h3, h0, h1
+    
+    umov w0, v3.H[0]
+    brk #0

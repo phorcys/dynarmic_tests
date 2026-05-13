@@ -1,0 +1,37 @@
+/* CONFIG
+{
+  "Match": "All",
+  "RegData": {
+    "R0": "0x00000008",
+    "R1": "0x00000006",
+    "R2": "0x00000003",
+    "R3": "0x00000009"
+  }
+}
+*/
+.text
+.arm
+.global _start
+_start:
+    mov r4, #0
+    cmp r4, #1
+    mrs r0, cpsr
+    lsr r0, r0, #28
+
+    mov r4, #1
+    cmp r4, #1
+    mrs r1, cpsr
+    lsr r1, r1, #28
+
+    ldr r4, =0x80000000
+    cmp r4, #1
+    mrs r2, cpsr
+    lsr r2, r2, #28
+
+    ldr r4, =0x7FFFFFFF
+    mvn r5, #0
+    cmp r4, r5
+    mrs r3, cpsr
+    lsr r3, r3, #28
+
+    bkpt #0

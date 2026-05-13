@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+usage() {
+    cat <<EOF
+Usage:
+  dynarmic-tests build-a64 [--out DIR]
+  dynarmic-tests build-a32 [--out DIR]
+  dynarmic-tests build-simde --simde DIR [--out DIR]
+  dynarmic-tests run-a64 --runner EXE [--tests DIR]
+  dynarmic-tests run-a32 --runner EXE [--tests DIR]
+  dynarmic-tests run-simde --runner EXE [--tests DIR]
+
+Generated ELF files should live outside the source tree, normally under the
+CMake build directory.
+EOF
+}
+
+require_arg() {
+    local name="$1"
+    local value="${2:-}"
+    if [ -z "$value" ]; then
+        echo "Missing argument for $name" >&2
+        exit 2
+    fi
+}
+
+cmd="${1:-}"
+if [ -z "$cmd" ]; then
+    usage
+    exit 2
+fi
+shift
+
+case "$cmd" in
+    build-a64)
+        out="${ROOT_DIR}/build/generated/a64"
+        while [ "$#" -gt 0 ]; do
+            case "$1" in
+                --out)
+                    require_arg "$1" "${2:-}"
+                    out="$2"
+                    shift 2
+                    ;;
+                *)
+                    echo "Unknown argument: $1" >&2
+                    exit 2
+                    ;;
+            esac
+        done
+        "${ROOT_DIR}/bintest/scripts/build_tests.sh" "$out"
+        ;;
+
+    build-a32)
+        out="${ROOT_DIR}/build/generated/a32"
+        while [ "$#" -gt 0 ]; do
+            case "$1" in
+                --out)
+                    require_arg "$1" "${2:-}"
+                    out="$2"
+                    shift 2
+                    ;;
+                *)
+                    echo "Unknown argument: $1" >&2
+                    exit 2
+                    ;;
+            esac
+        done
+        "${ROOT_DIR}/bintest/scripts/build_tests_a32.sh" "$out"
+        ;;
+
+    build-simde)
+        out="${ROOT_DIR}/build/generated/simde"
+        simde=""
+        while [ "$#" -gt 0 ]; do
+            case "$1" in
+                --out)
+                    require_arg "$1" "${2:-}"
+                    out="$2"
+                    shift 2
+                    ;;
+                --simde)
+                    require_arg "$1" "${2:-}"
+                    simde="$2"
+                    shift 2
+                    ;;
+                *)
+                    echo "Unknown argument: $1" >&2
+                    exit 2
+                    ;;
+            esac
+        done
+        if [ -z "$simde" ]; then
+            echo "build-simde requires --simde DIR" >&2
+            exit 2
+        fi
+        SIMDE_SRC="$simde" "${ROOT_DIR}/bintest/scripts/build_simde_tests.sh" "$out"
+        ;;
+
+    run-a64|run-a32|run-simde)
+        runner=""
+        case "$cmd" in
+            run-a64) tests="${ROOT_DIR}/build/generated/a64" ;;
+            run-a32) tests="${ROOT_DIR}/build/generated/a32" ;;
+            run-simde) tests="${ROOT_DIR}/build/generated/simde" ;;
+        esac
+        while [ "$#" -gt 0 ]; do
+            case "$1" in
+                --runner)
+                    require_arg "$1" "${2:-}"
+                    runner="$2"
+                    shift 2
+                    ;;
+                --tests)
+                    require_arg "$1" "${2:-}"
+                    tests="$2"
+                    shift 2
+                    ;;
+                *)
+                    echo "Unknown argument: $1" >&2
+                    exit 2
+                    ;;
+            esac
+        done
+        if [ -z "$runner" ]; then
+            echo "$cmd requires --runner EXE" >&2
+            exit 2
+        fi
+        exec "$runner" "$tests"
+        ;;
+
+    -h|--help|help)
+        usage
+        ;;
+
+    *)
+        echo "Unknown command: $cmd" >&2
+        usage >&2
+        exit 2
+        ;;
+esac
+
