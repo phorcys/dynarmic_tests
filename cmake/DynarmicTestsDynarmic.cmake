@@ -21,7 +21,8 @@ function(dynarmic_tests_detect_host_backend)
     set(DYNARMIC_TESTS_HOST_BACKEND_AVAILABLE OFF PARENT_SCOPE)
     if ("${host_arch}" STREQUAL "x86_64"
         OR "${host_arch}" STREQUAL "arm64"
-        OR "${host_arch}" STREQUAL "riscv64")
+        OR "${host_arch}" STREQUAL "riscv64"
+        OR "${host_arch}" STREQUAL "loongarch64")
         set(DYNARMIC_TESTS_HOST_BACKEND_AVAILABLE ON PARENT_SCOPE)
     endif()
 endfunction()
@@ -132,6 +133,12 @@ function(dynarmic_tests_import_eden_deps)
         set(CPMUTIL_JSON_FILE "${DYNARMIC_TESTS_EDEN_ROOT}/externals/cpmfile.json")
         file(READ "${CPMUTIL_JSON_FILE}" CPMFILE_CONTENT)
         AddJsonPackage(biscuit)
+    endif()
+
+    if ("${DYNARMIC_TESTS_HOST_ARCH}" STREQUAL "loongarch64" OR ARCHITECTURE_loongarch64)
+        set(CPMUTIL_JSON_FILE "${DYNARMIC_TESTS_EDEN_ROOT}/externals/cpmfile.json")
+        file(READ "${CPMUTIL_JSON_FILE}" CPMFILE_CONTENT)
+        AddJsonPackage(lagoon)
     endif()
 
     set(CPMUTIL_JSON_FILE "${old_cpmfile}")
