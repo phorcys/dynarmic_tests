@@ -717,9 +717,7 @@ public:
         WriteMemory<u64>(vaddr, value);
     }
     void MemoryWrite128(u64 vaddr, Vector value) override {
-        if (TryWriteFastmem128(vaddr, value)) {
-            return;
-        }
+        TryWriteFastmem128(vaddr, value);
         WriteMemory<u64>(vaddr, value[0]);
         WriteMemory<u64>(vaddr + 8, value[1]);
     }
@@ -794,6 +792,13 @@ private:
         return false;
     }
 
+    void WriteFastmemBytes(u64 vaddr, const void* value, size_t size) {
+        if (!fastmem_arena || vaddr + size > FASTMEM_ARENA_SIZE) {
+            return;
+        }
+        std::memcpy(fastmem_arena + vaddr, value, size);
+    }
+
     template<typename T>
     T ReadMemory(u64 vaddr) {
         // Map to data memory region
@@ -847,6 +852,7 @@ private:
                 return;
             }
             std::memcpy(&tls_mem[offset], &value, sizeof(T));
+            WriteFastmemBytes(vaddr, &value, sizeof(T));
             return;
         } else {
             // Write to extra_mem for arbitrary addresses
@@ -861,6 +867,7 @@ private:
         }
         
         std::memcpy(&data_mem[offset], &value, sizeof(T));
+        WriteFastmemBytes(vaddr, &value, sizeof(T));
     }
     
     template<typename T>
