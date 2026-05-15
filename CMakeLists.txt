@@ -14,6 +14,7 @@ option(DYNARMIC_TESTS_ENABLE_A32_BINTEST "Register A32 bintest CTest entry" ON)
 option(DYNARMIC_TESTS_ENABLE_SIMDE_BINTEST "Register SIMDe bintest CTest entry" ON)
 option(DYNARMIC_TESTS_ENABLE_A64_ASM "Register A64 asm CTest entry" ON)
 option(DYNARMIC_TESTS_ENABLE_A32_ASM "Register A32 asm CTest entry" ON)
+option(DYNARMIC_TESTS_ENABLE_FASTMEM_FAULT "Build and register protected-page fastmem fault test" ON)
 option(DYNARMIC_TESTS_USE_EDEN_CPM "Use Eden's CPM dependency declarations when building against an Eden checkout" ON)
 
 set(DYNARMIC_TESTS_EDEN_ROOT "" CACHE PATH "Path to an Eden checkout containing src/dynarmic")
@@ -48,6 +49,13 @@ if (DYNARMIC_TESTS_ENABLE_RUNNERS AND DYNARMIC_TESTS_HOST_BACKEND_AVAILABLE)
         runners/asm/a32_asmtest.cpp
     )
     target_link_libraries(dynarmic_asmtest_a32 PRIVATE dynarmic fmt::fmt)
+
+    if (UNIX AND DYNARMIC_TESTS_ENABLE_FASTMEM_FAULT)
+        add_executable(dynarmic_fastmem_fault
+            runners/fastmem_fault.cpp
+        )
+        target_link_libraries(dynarmic_fastmem_fault PRIVATE dynarmic)
+    endif()
 
     if (DYNARMIC_TESTS_BOOST_INCLUDE_DIR)
         foreach (target dynarmic_bintest_a64 dynarmic_bintest_a32 dynarmic_asmtest_a64 dynarmic_asmtest_a32)
@@ -197,6 +205,15 @@ if (BUILD_TESTING AND DYNARMIC_TESTS_ENABLE_RUNNERS AND DYNARMIC_TESTS_HOST_BACK
         )
         set_tests_properties(dynarmic_tests_a32_asm PROPERTIES
             LABELS "dynarmic;a32;asm"
+        )
+    endif()
+
+    if (TARGET dynarmic_fastmem_fault)
+        add_test(NAME dynarmic_tests_fastmem_fault
+            COMMAND dynarmic_fastmem_fault
+        )
+        set_tests_properties(dynarmic_tests_fastmem_fault PROPERTIES
+            LABELS "dynarmic;a64;fastmem"
         )
     endif()
 endif()
