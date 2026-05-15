@@ -801,6 +801,12 @@ private:
 
     template<typename T>
     T ReadMemory(u64 vaddr) {
+        if (fastmem_arena && vaddr + sizeof(T) <= FASTMEM_ARENA_SIZE) {
+            T result = 0;
+            std::memcpy(&result, fastmem_arena + vaddr, sizeof(T));
+            return result;
+        }
+
         // Map to data memory region
         size_t offset = 0;
         if (vaddr >= DATA_MEM_BASE && vaddr < DATA_MEM_BASE + DATA_MEM_SIZE) {
